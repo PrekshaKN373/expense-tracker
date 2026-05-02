@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics – Expense Tracker{% endblock %}
+{% block page_title %}Reports & Analytics{% endblock %}
+{% block page_title_mobile %}Reports{% endblock %}
+
+{% block content %}
+  <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="inline-flex rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+      <a href="?range=month" class="px-4 py-2 text-sm font-semibold rounded-xl transition {% if range == 'month' or range == 'this_month' %}bg-indigo-600 text-white{% else %}text-slate-700 hover:bg-slate-50{% endif %}">This Month</a>
+      <a href="?range=3m" class="px-4 py-2 text-sm font-semibold rounded-xl transition {% if range == '3m' %}bg-indigo-600 text-white{% else %}text-slate-700 hover:bg-slate-50{% endif %}">Last 3 Months</a>
+      <a href="?range=6m" class="px-4 py-2 text-sm font-semibold rounded-xl transition {% if range == '6m' %}bg-indigo-600 text-white{% else %}text-slate-700 hover:bg-slate-50{% endif %}">Last 6 Months</a>
+      <a href="?range=year" class="px-4 py-2 text-sm font-semibold rounded-xl transition {% if range == 'year' or range == 'this_year' %}bg-indigo-600 text-white{% else %}text-slate-700 hover:bg-slate-50{% endif %}">This Year</a>
+    </div>
+    <a href="{% url 'tracker:export_csv' %}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition">
+      Export CSV
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold text-slate-500">Total Income</p>
+      <p class="mt-2 text-2xl font-bold text-emerald-700">{{ currency_symbol }}{{ total_income|floatformat:2 }}</p>
+    </div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold text-slate-500">Total Expenses</p>
+      <p class="mt-2 text-2xl font-bold text-rose-700">{{ currency_symbol }}{{ total_expenses|floatformat:2 }}</p>
+    </div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold text-slate-500">Balance</p>
+      <p class="mt-2 text-2xl font-bold text-indigo-700">{{ currency_symbol }}{{ balance|floatformat:2 }}</p>
+    </div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold text-slate-500">Transactions</p>
+      <p class="mt-2 text-2xl font-bold text-slate-900">{{ total_transactions }}</p>
+    </div>
+  </div>
+
+  {% if not has_transactions %}
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+      <h3 class="text-lg font-bold text-slate-900">No data for selected range</h3>
+      <p class="mt-1 text-sm text-slate-500">Add transactions to view analytics and reports.</p>
+    </div>
+  {% else %}
+    <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Spending Trend (Line)</h3>
+        <div class="mt-4"><canvas id="lineChart" height="220"></canvas></div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Expenses by Category (Pie)</h3>
+        <div class="mt-4"><canvas id="pieChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Monthly Income vs Expenses (Bar)</h3>
+        <div class="mt-4"><canvas id="barChart" height="220"></canvas></div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Payment Method Breakdown (Doughnut)</h3>
+        <div class="mt-4"><canvas id="doughnutChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Top 5 Biggest Expenses</h3>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+              <tr class="text-left text-xs font-semibold text-slate-500">
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3">Category</th>
+                <th class="px-4 py-3">Note</th>
+                <th class="px-4 py-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for row in biggest_expenses %}
+                <tr>
+                  <td class="px-4 py-3 text-sm">{{ row.date }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.category }}</td>
+                  <td class="px-4 py-3 text-sm text-slate-500">{{ row.note|default:"—" }}</td>
+                  <td class="px-4 py-3 text-right text-sm font-semibold text-rose-700">{{ currency_symbol }}{{ row.amount|floatformat:2 }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500">No expense data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Category Breakdown</h3>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+              <tr class="text-left text-xs font-semibold text-slate-500">
+                <th class="px-4 py-3">Category</th>
+                <th class="px-4 py-3 text-right">Amount</th>
+                <th class="px-4 py-3 text-right">%</th>
+                <th class="px-4 py-3 text-right">Txns</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for row in category_breakdown %}
+                <tr>
+                  <td class="px-4 py-3 text-sm">{{ row.category }}</td>
+                  <td class="px-4 py-3 text-right text-sm font-semibold">{{ currency_symbol }}{{ row.amount|floatformat:2 }}</td>
+                  <td class="px-4 py-3 text-right text-sm">{{ row.percentage }}%</td>
+                  <td class="px-4 py-3 text-right text-sm">{{ row.transactions }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500">No category data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function () {
+      const monthly = {{ monthly_summary_json|safe }};
+      const categories = {{ category_breakdown_json|safe }};
+      const payment = {{ payment_breakdown_json|safe }};
+
+      const lineEl = document.getElementById('lineChart');
+      if (lineEl && monthly.length) {
+        new Chart(lineEl, {
+          type: 'line',
+          data: {
+            labels: monthly.map(x => x.month),
+            datasets: [{
+              label: 'Expenses',
+              data: monthly.map(x => x.expenses),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,0.12)',
+              fill: true,
+              tension: 0.35
+            }]
+          },
+          options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+      }
+
+      const pieEl = document.getElementById('pieChart');
+      if (pieEl && categories.length) {
+        new Chart(pieEl, {
+          type: 'pie',
+          data: {
+            labels: categories.map(x => x.category),
+            datasets: [{
+              data: categories.map(x => x.amount),
+              backgroundColor: ['#6366f1','#22c55e','#06b6d4','#f59e0b','#ef4444','#a855f7','#0ea5e9','#64748b'],
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      const barEl = document.getElementById('barChart');
+      if (barEl && monthly.length) {
+        new Chart(barEl, {
+          type: 'bar',
+          data: {
+            labels: monthly.map(x => x.month),
+            datasets: [
+              { label: 'Income', data: monthly.map(x => x.income), backgroundColor: '#22c55e' },
+              { label: 'Expenses', data: monthly.map(x => x.expenses), backgroundColor: '#ef4444' }
+            ]
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      const doughnutEl = document.getElementById('doughnutChart');
+      if (doughnutEl && payment.length) {
+        new Chart(doughnutEl, {
+          type: 'doughnut',
+          data: {
+            labels: payment.map(x => x.method),
+            datasets: [{
+              data: payment.map(x => x.amount),
+              backgroundColor: ['#6366f1','#22c55e','#06b6d4','#f59e0b','#ef4444']
+            }]
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Expense Tracker{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_title_mobile %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-sm text-slate-500">Welcome back,</p>
+      <h2 class="text-2xl font-bold text-slate-900">{{ request.session.name|default:"User" }}</h2>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'tracker:add_transaction' %}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition">
+        Add Transaction
+      </a>
+      <a href="{% url 'tracker:list_transactions' %}" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+        View All
+      </a>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-sm">
+      <div class="text-sm font-semibold text-emerald-50/90">Total Income</div>
+      <div class="mt-2 text-2xl font-bold">{{ currency_symbol }}{{ total_income|floatformat:2 }}</div>
+      <div class="mt-3 h-1.5 rounded-full bg-white/20">
+        <div class="h-1.5 w-2/3 rounded-full bg-white/60"></div>
+      </div>
+    </div>
+    <div class="rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 p-5 text-white shadow-sm">
+      <div class="text-sm font-semibold text-rose-50/90">Total Expenses</div>
+      <div class="mt-2 text-2xl font-bold">{{ currency_symbol }}{{ total_expenses|floatformat:2 }}</div>
+      <div class="mt-3 h-1.5 rounded-full bg-white/20">
+        <div class="h-1.5 w-2/5 rounded-full bg-white/60"></div>
+      </div>
+    </div>
+    <div class="rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-800 p-5 text-white shadow-sm">
+      <div class="text-sm font-semibold text-indigo-50/90">Balance</div>
+      <div class="mt-2 text-2xl font-bold">{{ currency_symbol }}{{ balance|floatformat:2 }}</div>
+      <div class="mt-3 h-1.5 rounded-full bg-white/20">
+        <div class="h-1.5 w-1/2 rounded-full bg-white/60"></div>
+      </div>
+    </div>
+  </div>
+
+  {% if not has_transactions %}
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center">
+      <div class="mx-auto h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-700 font-bold">ET</div>
+      <h3 class="mt-4 text-lg font-bold">No transactions yet</h3>
+      <p class="mt-1 text-sm text-slate-500">Add your first transaction to unlock insights and charts.</p>
+      <a href="{% url 'tracker:add_transaction' %}" class="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">Add Transaction</a>
+    </div>
+  {% else %}
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-900">Recent Transactions</h3>
+          <a href="{% url 'tracker:list_transactions' %}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-800">See all</a>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead>
+              <tr class="text-left text-xs font-semibold text-slate-500">
+                <th class="py-3 pr-4">Date</th>
+                <th class="py-3 pr-4">Type</th>
+                <th class="py-3 pr-4">Category</th>
+                <th class="py-3 pr-4 text-right">Amount</th>
+                <th class="py-3">Note</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for txn in recent_transactions %}
+                <tr class="hover:bg-slate-50 transition">
+                  <td class="py-3 pr-4 text-sm text-slate-700 whitespace-nowrap">{{ txn.date|default:"—" }}</td>
+                  <td class="py-3 pr-4 text-sm">
+                    {% if txn.type == 'income' %}
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">Income</span>
+                    {% else %}
+                      <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">Expense</span>
+                    {% endif %}
+                  </td>
+                  <td class="py-3 pr-4 text-sm text-slate-700">{{ txn.category|default:"—" }}</td>
+                  <td class="py-3 pr-4 text-sm text-right font-semibold {% if txn.type == 'income' %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                    {% if txn.type == 'income' %}+{% else %}-{% endif %}{{ currency_symbol }}{{ txn.amount|floatformat:2 }}
+                  </td>
+                  <td class="py-3 text-sm text-slate-500">{{ txn.note|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900">Upcoming Bills</h3>
+        <div class="mt-4 space-y-3">
+          {% if upcoming_bills %}
+            {% for r in upcoming_bills %}
+              <div class="flex items-center justify-between rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition">
+                <div class="min-w-0">
+                  <div class="truncate text-sm font-semibold text-slate-900">{{ r.name }}</div>
+                  <div class="text-xs text-slate-500">Due {{ r.due }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-bold text-slate-900">{{ currency_symbol }}{{ r.amount|floatformat:2 }}</div>
+                  {% if r.days_left <= 0 %}
+                    <span class="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">Due</span>
+                  {% elif r.days_left <= 3 %}
+                    <span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">{{ r.days_left }}d</span>
+                  {% else %}
+                    <span class="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">{{ r.days_left }}d</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+            <a href="{% url 'tracker:list_recurring' %}" class="inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-800">View all recurring →</a>
+          {% else %}
+            <div class="rounded-xl border border-slate-200 p-4 text-sm text-slate-600">
+              No recurring bills due in the next 7 days.
+              <div class="mt-2"><a class="font-semibold text-indigo-700 hover:text-indigo-800" href="{% url 'tracker:add_recurring' %}">Add recurring</a></div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-900">Spending by Category</h3>
+          <span class="text-xs text-slate-500">This period</span>
+        </div>
+        <div class="mt-4">
+          <canvas id="pieChart" height="220"></canvas>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-900">Income vs Expenses</h3>
+          <span class="text-xs text-slate-500">Monthly</span>
+        </div>
+        <div class="mt-4">
+          <canvas id="barChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function() {
+      var pieData = {{ expenses_by_category_json|safe }};
+      var barData = {{ monthly_data_json|safe }};
+
+      var pieEl = document.getElementById('pieChart');
+      if (pieEl && pieData && pieData.length) {
+        new Chart(pieEl.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: pieData.map(d => d.label),
+            datasets: [{
+              data: pieData.map(d => d.value),
+              backgroundColor: ['#6366f1','#22c55e','#06b6d4','#f59e0b','#ef4444','#a855f7','#0ea5e9','#64748b'],
+              borderColor: '#ffffff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+            layout: { padding: 6 }
+          }
+        });
+      }
+
+      var barEl = document.getElementById('barChart');
+      if (barEl && barData && barData.length) {
+        new Chart(barEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: barData.map(d => d.month),
+            datasets: [
+              { label: 'Income', data: barData.map(d => d.income), backgroundColor: '#22c55e' },
+              { label: 'Expenses', data: barData.map(d => d.expenses), backgroundColor: '#ef4444' }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+              x: { grid: { display: false } },
+              y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.25)' } }
+            }
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

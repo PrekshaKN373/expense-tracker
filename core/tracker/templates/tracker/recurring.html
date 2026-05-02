@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Recurring Transactions – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_accounts' %}">Accounts</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:list_recurring' %}">Recurring</a>
+  <a href="{% url 'tracker:reports' %}">Reports</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block extra_css %}
+  <style>
+    .recurring-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .header-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .btn-main { display:inline-block; padding:0.5rem 1rem; background:#1a1a2e; color:#eee; text-decoration:none; border-radius:4px; }
+    .btn-main.secondary { background:#495057; }
+    .btn-main:hover { opacity:0.9; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1rem; }
+    .card { background:#fff; border-radius:12px; padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:4px solid #6c757d; }
+    .card .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
+    .card .name { font-weight:bold; font-size:1.1rem; }
+    .card .amount { font-weight:bold; }
+    .card .meta { color:#666; font-size:0.9rem; margin-bottom:0.25rem; }
+    .status.upcoming { color:#0a0; font-weight:bold; }
+    .status.due_soon { color:#d39e00; font-weight:bold; }
+    .status.overdue { color:#c00; font-weight:bold; }
+    .empty-state { padding:2rem; text-align:center; color:#666; }
+  </style>
+{% endblock %}
+{% block content %}
+  <div class="recurring-header">
+    <h1>Recurring Transactions</h1>
+    <div class="header-actions">
+      <a href="{% url 'tracker:process_recurring' %}" class="btn-main secondary">Process Due Transactions</a>
+      <a href="{% url 'tracker:add_recurring' %}" class="btn-main">Add Recurring</a>
+    </div>
+  </div>
+
+  {% if recurring %}
+    <div class="cards">
+      {% for r in recurring %}
+        <div class="card">
+          <div class="top">
+            <span class="name">{{ r.name }}</span>
+            <span class="amount">{{ currency_symbol }}{{ r.amount|floatformat:2 }}</span>
+          </div>
+          <div class="meta">
+            {{ r.category|default:"Other" }} • {{ r.frequency|capfirst }} • {{ r.type|capfirst }}
+          </div>
+          <div class="meta">Next due: {{ r.next_due }}</div>
+          <div class="meta">
+            Days until due:
+            <span class="status {{ r.status }}">
+              {% if r.days_until < 0 %}
+                {{ r.days_until|add:"0" }} day(s) overdue
+              {% elif r.days_until == 0 %}
+                Due today
+              {% else %}
+                {{ r.days_until }} day(s)
+              {% endif %}
+            </span>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <a href="{% url 'tracker:delete_recurring' r.id %}" onclick="return confirm('Delete this recurring transaction?');">Delete</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No recurring transactions yet.</p>
+      <p><a href="{% url 'tracker:add_recurring' %}" class="btn-main">Add Recurring</a></p>
+    </div>
+  {% endif %}
+{% endblock %}

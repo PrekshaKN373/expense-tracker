@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Add Account – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block content %}
+  <h1>Add Account</h1>
+  <form method="post" action="{% url 'tracker:add_account' %}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="name">Name *</label>
+      <input type="text" id="name" name="name" required placeholder="e.g. My Wallet">
+    </div>
+    <div class="form-group">
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        <option value="Cash">Cash</option>
+        <option value="Bank Account">Bank Account</option>
+        <option value="Credit Card">Credit Card</option>
+        <option value="UPI">UPI</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="balance">Opening Balance</label>
+      <input type="number" id="balance" name="balance" step="0.01" value="0" placeholder="Can be negative">
+    </div>
+    <div class="form-group">
+      <label for="icon">Icon (emoji)</label>
+      <input type="text" id="icon" name="icon" placeholder="e.g. 💵" maxlength="4">
+    </div>
+    <div class="form-group">
+      <label for="color">Color</label>
+      <input type="color" id="color" name="color" value="#6c757d" style="width: 4rem; height: 2.5rem; padding: 0.2rem; cursor: pointer;">
+    </div>
+    <button type="submit">Save</button>
+    <a href="{% url 'tracker:list_accounts' %}">Cancel</a>
+  </form>
+{% endblock %}

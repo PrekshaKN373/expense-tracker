@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Budgets – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_accounts' %}">Accounts</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:list_recurring' %}">Recurring</a>
+  <a href="{% url 'tracker:reports' %}">Reports</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block extra_css %}
+  <style>
+    .budgets-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .btn-add { display: inline-block; padding: 0.5rem 1rem; background: #1a1a2e; color: #eee; text-decoration: none; border-radius: 4px; }
+    .btn-add:hover { opacity: 0.9; }
+    .budget-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .budget-card { border-radius: 12px; padding: 1.25rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #6c757d; }
+    .budget-card .cat-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .budget-card .icon { font-size: 1.75rem; }
+    .budget-card .cat-name { font-weight: bold; font-size: 1.1rem; }
+    .budget-card .month { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+    .budget-card .amounts { margin-bottom: 0.75rem; }
+    .budget-card .progress-wrap { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem; }
+    .budget-card .progress-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .budget-card .progress-bar.safe { background: #1cc88a; }
+    .budget-card .progress-bar.warning { background: #f6c23e; }
+    .budget-card .progress-bar.exceeded { background: #e74a3b; }
+    .budget-card .pct { font-size: 0.9rem; color: #666; }
+    .budget-card .exceeded-msg { margin-top: 0.5rem; padding: 0.5rem; background: #f8d7da; color: #721c24; border-radius: 4px; font-size: 0.9rem; }
+    .budget-card .delete-wrap { margin-top: 0.75rem; }
+    .budget-card .delete-btn { font-size: 0.85rem; color: #721c24; }
+    .empty-state { padding: 2rem; text-align: center; color: #666; }
+  </style>
+{% endblock %}
+{% block content %}
+  <div class="budgets-header">
+    <h1>Budgets</h1>
+    <a href="{% url 'tracker:add_budget' %}" class="btn-add">Add Budget</a>
+  </div>
+  {% if budgets %}
+    <div class="budget-cards">
+      {% for b in budgets %}
+        <div class="budget-card" style="border-left-color: {{ b.color }};">
+          <div class="cat-row">
+            <span class="icon">{{ b.icon }}</span>
+            <span class="cat-name">{{ b.category_name }}</span>
+          </div>
+          <div class="month">{{ b.month_label }}</div>
+          <div class="amounts">{{ currency_symbol }}{{ b.spent|floatformat:2 }} of {{ currency_symbol }}{{ b.limit|floatformat:2 }}</div>
+          <div class="progress-wrap">
+            <div class="progress-bar {{ b.status }}" style="width: {{ b.progress_width }}%;"></div>
+          </div>
+          <div class="pct">{{ b.percentage }}% used</div>
+          {% if b.status == 'exceeded' %}
+            <div class="exceeded-msg">Budget exceeded for this month.</div>
+          {% endif %}
+          <div class="delete-wrap">
+            <a href="{% url 'tracker:delete_budget' b.id %}" class="delete-btn" onclick="return confirm('Delete this budget?');">Delete budget</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No budgets set. Add a budget to track spending by category.</p>
+      <p><a href="{% url 'tracker:add_budget' %}" class="btn-add">Add Budget</a></p>
+    </div>
+  {% endif %}
+{% endblock %}

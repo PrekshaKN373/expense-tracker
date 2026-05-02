@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Accounts – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block extra_css %}
+  <style>
+    .accounts-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .btn-add { display: inline-block; padding: 0.5rem 1rem; background: #1a1a2e; color: #eee; text-decoration: none; border-radius: 4px; }
+    .btn-add:hover { opacity: 0.9; }
+    .total-balance { font-size: 1.25rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: #f8f9fa; border-radius: 8px; }
+    .total-balance .label { color: #666; }
+    .total-balance .amount.positive { color: #155724; font-weight: bold; }
+    .total-balance .amount.negative { color: #721c24; font-weight: bold; }
+    .account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+    .account-card { border-radius: 12px; padding: 1.25rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #6c757d; }
+    .account-card .row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .account-card .icon { font-size: 1.75rem; }
+    .account-card .name { font-weight: bold; font-size: 1.1rem; }
+    .account-card .type { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+    .account-card .balance.positive { color: #155724; font-weight: bold; }
+    .account-card .balance.negative { color: #721c24; font-weight: bold; }
+    .account-card .actions { margin-top: 0.75rem; }
+    .account-card .actions a { margin-right: 0.5rem; font-size: 0.9rem; }
+    .empty-state { padding: 2rem; text-align: center; color: #666; }
+  </style>
+{% endblock %}
+{% block content %}
+  <div class="accounts-header">
+    <h1>Accounts</h1>
+    <a href="{% url 'tracker:add_account' %}" class="btn-add">Add Account</a>
+  </div>
+  {% if accounts %}
+    <div class="total-balance">
+      <span class="label">Total balance: </span>
+      <span class="amount {% if total_balance >= 0 %}positive{% else %}negative{% endif %}">{{ currency_symbol }}{{ total_balance|floatformat:2 }}</span>
+    </div>
+    <div class="account-cards">
+      {% for acc in accounts %}
+        <div class="account-card" style="border-left-color: {{ acc.color|default:'#6c757d' }};">
+          <div class="row">
+            <span class="icon">{{ acc.icon|default:"💵" }}</span>
+            <span class="name">{{ acc.name|default:"Account" }}</span>
+          </div>
+          <div class="type">{{ acc.type|default:"—" }}</div>
+          <div class="balance {% if acc.balance >= 0 %}positive{% else %}negative{% endif %}">{{ currency_symbol }}{{ acc.balance|floatformat:2 }}</div>
+          <div class="actions">
+            <a href="{% url 'tracker:edit_account' acc.id %}">Edit</a>
+            <a href="{% url 'tracker:delete_account_entry' acc.id %}" onclick="return confirm('Delete this account?');">Delete</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No accounts yet. Add one to get started.</p>
+      <p><a href="{% url 'tracker:add_account' %}" class="btn-add">Add Account</a></p>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Settings – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_accounts' %}">Accounts</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:list_recurring' %}">Recurring</a>
+  <a href="{% url 'tracker:reports' %}">Reports</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block extra_css %}
+  <style>
+    .section { background:#fff; border:1px solid #ddd; border-radius:10px; padding:1rem; margin-bottom:1rem; }
+    .section h2 { margin-top:0; }
+    .row { display:flex; gap:1rem; flex-wrap:wrap; }
+    .danger { border-color:#f5c6cb; background:#fff5f5; }
+    .btn-danger { background:#c82333; color:#fff; text-decoration:none; display:inline-block; }
+    .hint { color:#666; font-size:0.9rem; }
+    .readonly { background:#f8f9fa; }
+  </style>
+{% endblock %}
+{% block content %}
+  <h1>Settings</h1>
+
+  <section class="section">
+    <h2>Profile Settings</h2>
+    <form method="post" action="{% url 'tracker:update_profile' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{ name|default:'' }}" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" value="{{ email|default:'' }}" readonly class="readonly">
+      </div>
+      <div class="form-group">
+        <label for="currency">Currency</label>
+        <select id="currency" name="currency">
+          <option value="INR" {% if currency == 'INR' %}selected{% endif %}>INR</option>
+          <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD</option>
+          <option value="EUR" {% if currency == 'EUR' %}selected{% endif %}>EUR</option>
+          <option value="GBP" {% if currency == 'GBP' %}selected{% endif %}>GBP</option>
+          <option value="AED" {% if currency == 'AED' %}selected{% endif %}>AED</option>
+        </select>
+      </div>
+      <button type="submit">Save Profile</button>
+    </form>
+  </section>
+
+  <section class="section">
+    <h2>Change Password</h2>
+    <form id="passwordForm">
+      <div class="form-group">
+        <label for="currentPassword">Current Password</label>
+        <input type="password" id="currentPassword" required>
+      </div>
+      <div class="form-group">
+        <label for="newPassword">New Password</label>
+        <input type="password" id="newPassword" required>
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm New Password</label>
+        <input type="password" id="confirmPassword" required>
+      </div>
+      <button type="submit">Change Password</button>
+      <div id="pwdMsg" class="hint" style="margin-top:0.5rem;"></div>
+    </form>
+  </section>
+
+  <section class="section">
+    <h2>Data Management</h2>
+    <p><a href="{% url 'tracker:export_csv' %}" class="btn">Export all data as CSV</a></p>
+    <form method="post" action="{% url 'tracker:clear_transactions' %}" onsubmit="return confirmClear();">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="clearConfirm">Type CLEAR to remove all transactions</label>
+        <input type="text" id="clearConfirm" name="confirm_text" placeholder="CLEAR" required>
+      </div>
+      <button type="submit">Clear all transactions</button>
+    </form>
+  </section>
+
+  <section class="section danger">
+    <h2>Danger Zone</h2>
+    <p class="hint">This deletes all your data and logs you out.</p>
+    <form method="post" action="{% url 'tracker:delete_account' %}" onsubmit="return confirmDelete();">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="deleteConfirm">Type DELETE to confirm account deletion</label>
+        <input type="text" id="deleteConfirm" name="confirm_text" placeholder="DELETE" required>
+      </div>
+      <button type="submit" class="btn-danger">Delete Account</button>
+    </form>
+  </section>
+{% endblock %}
+{% block extra_js %}
+  <script>
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return '';
+    }
+
+    function confirmClear() {
+      return window.confirm('Are you sure you want to clear all transactions?');
+    }
+
+    function confirmDelete() {
+      return window.confirm('Are you absolutely sure? This action cannot be undone.');
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('pwdMsg');
+      msg.textContent = '';
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        msg.textContent = 'New passwords do not match.';
+        msg.style.color = '#c00';
+        return;
+      }
+
+      try {
+        const user = firebase.auth().currentUser;
+        if (!user || !user.email) {
+          throw new Error('Please login again to change password.');
+        }
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+        await user.reauthenticateWithCredential(credential);
+        await user.updatePassword(newPassword);
+
+        await fetch("{% url 'tracker:change_password' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+          },
+          body: JSON.stringify({ changed: true })
+        });
+
+        msg.textContent = 'Password changed successfully.';
+        msg.style.color = '#080';
+        document.getElementById('passwordForm').reset();
+      } catch (err) {
+        msg.textContent = err.message || 'Failed to change password.';
+        msg.style.color = '#c00';
+      }
+    });
+  </script>
+{% endblock %}

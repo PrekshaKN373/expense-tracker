@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "{{ FIREBASE_API_KEY }}",
+      authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+      projectId: "{{ FIREBASE_PROJECT_ID }}",
+      storageBucket: "{{ FIREBASE_STORAGE_BUCKET }}",
+      messagingSenderId: "{{ FIREBASE_MESSAGING_SENDER_ID }}",
+      appId: "{{ FIREBASE_APP_ID }}"
+    };
+    if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body class="h-full bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700">
+  <div class="min-h-full flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+      <div class="rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden">
+        <div class="px-8 pt-8 pb-6">
+          <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">ET</div>
+            <div>
+              <div class="text-lg font-bold text-slate-900">Expense Tracker</div>
+              <div class="text-sm text-slate-500">Sign in to continue</div>
+            </div>
+          </div>
+          <div id="message" class="hidden mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"></div>
+        </div>
+
+        <div class="px-8 pb-8">
+          <form id="emailForm" class="space-y-4">
+            <div>
+              <label class="text-sm font-semibold text-slate-700" for="email">Email</label>
+              <input id="email" type="email" required
+                     class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-400" />
+            </div>
+            <div>
+              <label class="text-sm font-semibold text-slate-700" for="password">Password</label>
+              <input id="password" type="password" required
+                     class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-400" />
+            </div>
+            <button id="loginBtn" type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 transition">
+              <span id="loginSpinner" class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span id="loginText">Sign in</span>
+            </button>
+          </form>
+
+          <div class="mt-5">
+            <button id="googleBtn" type="button"
+                    class="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-indigo-200 transition">
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5">
+                <path fill="#EA4335" d="M12 10.2v3.8h5.3c-.2 1.2-1.5 3.5-5.3 3.5-3.2 0-5.8-2.6-5.8-5.8S8.8 5.9 12 5.9c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.7 3.6 14.6 2.5 12 2.5 6.9 2.5 2.7 6.7 2.7 11.8S6.9 21.1 12 21.1c5.5 0 9.1-3.9 9.1-9.4 0-.6-.1-1.1-.1-1.5H12z"/>
+                <path fill="#34A853" d="M3.8 7.3l3.1 2.3C7.8 7.4 9.7 5.9 12 5.9c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.7 3.6 14.6 2.5 12 2.5c-3.6 0-6.7 2.1-8.2 4.8z"/>
+                <path fill="#FBBC05" d="M12 21.1c2.5 0 4.6-.8 6.1-2.2l-2.9-2.2c-.8.5-1.8.8-3.2.8-2.3 0-4.2-1.5-4.9-3.7l-3.1 2.4c1.5 2.7 4.6 5.1 8 5.1z"/>
+                <path fill="#4285F4" d="M21 11.7c0-.5-.1-1-.1-1.5H12v3.8h5.3c-.3 1.6-1.7 3-3.3 3.7l2.9 2.2c1.7-1.6 4.1-4 4.1-9.2z"/>
+              </svg>
+              Continue with Google
+            </button>
+          </div>
+
+          <div class="mt-6 text-center text-sm text-slate-600">
+            Don’t have an account?
+            <a class="font-semibold text-indigo-700 hover:text-indigo-800" href="{% url 'tracker:register' %}">Create one</a>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 text-center text-xs text-white/80">© {{ now|default:"" }} Expense Tracker</div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var auth = firebase.auth();
+      var msg = document.getElementById('message');
+      var loginBtn = document.getElementById('loginBtn');
+      var spinner = document.getElementById('loginSpinner');
+      var loginText = document.getElementById('loginText');
+
+      function setLoading(isLoading) {
+        if (isLoading) {
+          spinner.classList.remove('hidden');
+          loginText.textContent = 'Signing in...';
+          loginBtn.setAttribute('disabled', 'disabled');
+          loginBtn.classList.add('opacity-90', 'cursor-not-allowed');
+        } else {
+          spinner.classList.add('hidden');
+          loginText.textContent = 'Sign in';
+          loginBtn.removeAttribute('disabled');
+          loginBtn.classList.remove('opacity-90', 'cursor-not-allowed');
+        }
+      }
+
+      function showMessage(text) {
+        msg.textContent = text;
+        msg.classList.remove('hidden');
+      }
+
+      function sendTokenToBackend(idToken) {
+        return fetch('/auth/verify-token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ token: idToken })
+        }).then(function(r){ return r.json(); });
+      }
+
+      document.getElementById('emailForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        msg.classList.add('hidden');
+        if (!firebaseConfig.apiKey) { showMessage('Firebase is not configured. Check .env.'); return; }
+        setLoading(true);
+        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+          .then(function(userCred){ return userCred.user.getIdToken(); })
+          .then(sendTokenToBackend)
+          .then(function(data){
+            if (data.success) window.location.href = '/dashboard/';
+            else showMessage(data.error || 'Verification failed');
+          })
+          .catch(function(err){ showMessage(err.message || 'Sign-in failed'); })
+          .finally(function(){ setLoading(false); });
+      });
+
+      document.getElementById('googleBtn').addEventListener('click', function() {
+        msg.classList.add('hidden');
+        if (!firebaseConfig.apiKey) { showMessage('Firebase is not configured. Check .env.'); return; }
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+          .then(function(userCred){ return userCred.user.getIdToken(); })
+          .then(sendTokenToBackend)
+          .then(function(data){
+            if (data.success) window.location.href = '/dashboard/';
+            else showMessage(data.error || 'Verification failed');
+          })
+          .catch(function(err){ showMessage(err.message || 'Sign-in failed'); });
+      });
+    })();
+  </script>
+</body>
+</html>

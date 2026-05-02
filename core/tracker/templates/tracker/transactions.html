@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Transactions – Expense Tracker{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+{% block page_title_mobile %}Transactions{% endblock %}
+
+{% block content %}
+  <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2">
+      <a href="?type=" class="rounded-full px-4 py-2 text-sm font-semibold transition
+        {% if filter_type == 'all' %}bg-indigo-600 text-white{% else %}bg-white text-slate-700 border border-slate-200 hover:bg-slate-50{% endif %}">All</a>
+      <a href="?type=income" class="rounded-full px-4 py-2 text-sm font-semibold transition
+        {% if filter_type == 'income' %}bg-emerald-600 text-white{% else %}bg-white text-slate-700 border border-slate-200 hover:bg-slate-50{% endif %}">Income</a>
+      <a href="?type=expense" class="rounded-full px-4 py-2 text-sm font-semibold transition
+        {% if filter_type == 'expense' %}bg-rose-600 text-white{% else %}bg-white text-slate-700 border border-slate-200 hover:bg-slate-50{% endif %}">Expense</a>
+    </div>
+    <a href="{% url 'tracker:add_transaction' %}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition">
+      Add transaction
+    </a>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr class="text-left text-xs font-semibold text-slate-500">
+            <th class="px-5 py-3">Date</th>
+            <th class="px-5 py-3">Type</th>
+            <th class="px-5 py-3">Category</th>
+            <th class="px-5 py-3 text-right">Amount</th>
+            <th class="px-5 py-3">Note</th>
+            <th class="px-5 py-3">Payment</th>
+            <th class="px-5 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for txn in transactions %}
+            <tr class="{% cycle 'bg-white' 'bg-slate-50/40' %} hover:bg-indigo-50/40 transition">
+              <td class="px-5 py-4 text-sm text-slate-700 whitespace-nowrap">{{ txn.date|default:"—" }}</td>
+              <td class="px-5 py-4 text-sm">
+                {% if txn.type == 'income' %}
+                  <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">Income</span>
+                {% else %}
+                  <span class="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">Expense</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-4 text-sm text-slate-700">
+                <span class="inline-flex items-center gap-2">
+                  <span class="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs">🏷️</span>
+                  {{ txn.category|default:"—" }}
+                </span>
+              </td>
+              <td class="px-5 py-4 text-sm text-right font-semibold {% if txn.type == 'income' %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                {% if txn.type == 'income' %}+{% else %}-{% endif %}{{ txn.amount|floatformat:2 }}
+              </td>
+              <td class="px-5 py-4 text-sm text-slate-500">{{ txn.note|default:"—" }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ txn.payment_method|default:"—" }}</td>
+              <td class="px-5 py-4 text-sm">
+                <div class="flex items-center gap-3">
+                  <a class="font-semibold text-indigo-700 hover:text-indigo-800" href="{% url 'tracker:edit_transaction' txn.id %}">Edit</a>
+                  <a class="font-semibold text-rose-700 hover:text-rose-800" href="{% url 'tracker:delete_transaction' txn.id %}" onclick="return confirm('Delete this transaction?');">Delete</a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="px-5 py-10 text-center text-sm text-slate-600">
+                No transactions yet.
+                <a class="font-semibold text-indigo-700 hover:text-indigo-800" href="{% url 'tracker:add_transaction' %}">Add one</a>.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

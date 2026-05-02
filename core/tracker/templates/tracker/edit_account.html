@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Edit Account – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block content %}
+  <h1>Edit Account</h1>
+  <form method="post" action="{% url 'tracker:edit_account' account.id %}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="name">Name *</label>
+      <input type="text" id="name" name="name" value="{{ account.name|default:'' }}" required>
+    </div>
+    <div class="form-group">
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        <option value="Cash" {% if account.type == 'Cash' %}selected{% endif %}>Cash</option>
+        <option value="Bank Account" {% if account.type == 'Bank Account' %}selected{% endif %}>Bank Account</option>
+        <option value="Credit Card" {% if account.type == 'Credit Card' %}selected{% endif %}>Credit Card</option>
+        <option value="UPI" {% if account.type == 'UPI' %}selected{% endif %}>UPI</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="balance">Opening Balance</label>
+      <input type="number" id="balance" name="balance" step="0.01" value="{{ account.balance|default:0 }}">
+    </div>
+    <div class="form-group">
+      <label for="icon">Icon (emoji)</label>
+      <input type="text" id="icon" name="icon" value="{{ account.icon|default:'' }}" maxlength="4">
+    </div>
+    <div class="form-group">
+      <label for="color">Color</label>
+      <input type="color" id="color" name="color" value="{{ account.color|default:'#6c757d' }}" style="width: 4rem; height: 2.5rem; padding: 0.2rem; cursor: pointer;">
+    </div>
+    <button type="submit">Update</button>
+    <a href="{% url 'tracker:list_accounts' %}">Cancel</a>
+  </form>
+{% endblock %}

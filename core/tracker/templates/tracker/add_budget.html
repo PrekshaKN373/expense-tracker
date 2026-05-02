@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Add Budget – Expense Tracker{% endblock %}
+{% block nav_links %}
+  <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
+  <a href="{% url 'tracker:list_transactions' %}">Transactions</a>
+  <a href="{% url 'tracker:list_categories' %}">Categories</a>
+  <a href="{% url 'tracker:list_budgets' %}">Budgets</a>
+  <a href="{% url 'tracker:settings' %}">Settings</a>
+  <a href="{% url 'tracker:logout' %}">Logout</a>
+{% endblock %}
+{% block content %}
+  <h1>Add Budget</h1>
+  <form method="post" action="{% url 'tracker:add_budget' %}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        {% for cat in categories %}
+          <option value="{{ cat.name }}">{{ cat.icon|default:'' }} {{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="limit">Budget limit *</label>
+      <input type="number" id="limit" name="limit" step="0.01" min="0" required placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label for="month">Month</label>
+      <select id="month" name="month">
+        <option value="1">January</option>
+        <option value="2">February</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="year">Year</label>
+      <input type="number" id="year" name="year" value="{{ current_year }}" min="2020" max="2030" required>
+    </div>
+    <button type="submit">Save</button>
+    <a href="{% url 'tracker:list_budgets' %}">Cancel</a>
+  </form>
+{% endblock %}
+{% block extra_js %}
+  <script>
+    var d = new Date();
+    document.getElementById('month').value = (d.getMonth() + 1).toString();
+    document.getElementById('year').value = d.getFullYear();
+  </script>
+{% endblock %}
