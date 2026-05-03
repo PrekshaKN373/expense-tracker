@@ -1,14 +1,26 @@
 """
 Firebase Admin SDK initialization and helpers.
-Uses .env for config; credentials from FIREBASE_KEY_PATH (e.g. serviceAccountKey.json).
+
+Credentials are resolved in this order:
+1. FIREBASE_CREDENTIALS_JSON env var — full service account JSON as a string
+   (preferred for production / Railway deployments).
+2. FIREBASE_KEY_PATH env var — path to a service account JSON file
+   (defaults to serviceAccountKey.json, useful for local development).
+
+If neither source yields valid credentials the first call to get_db() or
+verify_token() will raise a RuntimeError with a clear message.
 """
+import json
 import os
 
 from django.conf import settings
 
-# Load .env so os.getenv has values when this module runs
+# Load .env when it exists (local development). In production the file won't
+# be present and load_dotenv silently does nothing, so this is always safe.
 from dotenv import load_dotenv
-load_dotenv(settings.BASE_DIR / ".env")
+_env_file = settings.BASE_DIR / ".env"
+if _env_file.is_file():
+    load_dotenv(_env_file)
 
 _db = None
 _auth = None
@@ -21,12 +33,38 @@ def _ensure_initialized():
         return
     import firebase_admin
     from firebase_admin import credentials, auth, firestore
-    key_path = os.getenv("FIREBASE_KEY_PATH", "serviceAccountKey.json")
-    if not os.path.isabs(key_path):
-        key_path = str(settings.BASE_DIR / key_path)
-    if not os.path.isfile(key_path):
-        raise FileNotFoundError(f"Firebase key file not found: {key_path}")
-    cred = credentials.Certificate(key_path)
+
+    cred = None
+
+    # --- Option 1: credentials supplied as a JSON string via env var ---
+    credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+    if credentials_json:
+        try:
+            service_account_info = json.loads(credentials_json)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "FIREBASE_CREDENTIALS_JSON is set but could not be parsed as JSON. "
+                "Make sure the value is the raw contents of your service account key file."
+            ) from exc
+        cred = credentials.Certificate(service_account_info)
+
+    # --- Option 2: fall back to a key file (local development) ---
+    if cred is None:
+        key_path = os.getenv("FIREBASE_KEY_PATH", "serviceAccountKey.json")
+        if not os.path.isabs(key_path):
+            key_path = str(settings.BASE_DIR / key_path)
+        if os.path.isfile(key_path):
+            cred = credentials.Certificate(key_path)
+
+    if cred is None:
+        raise RuntimeError(
+            "Firebase credentials are not configured. "
+            "In production, set the FIREBASE_CREDENTIALS_JSON environment variable "
+            "to the contents of your service account key JSON. "
+            "For local development, place serviceAccountKey.json in the project root "
+            "or set FIREBASE_KEY_PATH to its location."
+        )
+
     firebase_admin.initialize_app(cred)
     _db = firestore.client()
     _auth = auth
