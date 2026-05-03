@@ -6,7 +6,11 @@ import os
 from django.conf import settings
 from dotenv import load_dotenv
 
-load_dotenv(settings.BASE_DIR / ".env")
+# Load .env when it exists (local development). In production the file won't
+# be present; environment variables are already set by the platform.
+_env_file = settings.BASE_DIR / ".env"
+if _env_file.is_file():
+    load_dotenv(_env_file)
 
 
 def firebase_config(request):
